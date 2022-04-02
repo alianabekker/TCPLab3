@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
 using System.Drawing;
+using System.Globalization;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -14,6 +16,8 @@ namespace TCPLab3
     public partial class MainForm : Form
     {
         Random rnd = new Random(DateTime.Now.Second);
+        List<string> numbers = new List<string>() {"0.09","0.31","0.53","0.23", "0.42", "0.63"};
+        int counter; 
         public MainForm()
         {
             InitializeComponent();
@@ -21,6 +25,9 @@ namespace TCPLab3
             SumS1();
             SumS2();
             SumS3();
+
+            /*numbers = File.ReadAllText(@"C:\Users\ivan-\source\repos\TCPLab3\TCPLab3\file.txt").Split(' ', '\r', '\n').ToList();
+            numbers = numbers.Where(x => !string.IsNullOrEmpty(x)).ToList();*/
         }
 
         void SumVector()
@@ -99,12 +106,12 @@ namespace TCPLab3
                 MessageBox.Show("Сумма вероятностей в векторе начальных вероятностей не равна 1!");
                 return false;
             }
-            if (sumS0.Text != "1.00")
+            if (sumS0.Text != "1.00" && sumS0.Text != "1.0" && sumS0.Text != "1")
             {
                 MessageBox.Show("Сумма вероятностей переходов из S0 в матрице начальных вероятностей переходов не равна 1!");
                 return false;
             }
-            if (sumS1.Text != "1.00")
+            if (sumS1.Text != "1.00" && sumS1.Text != "1.0" && sumS1.Text != "1")
             {
                 MessageBox.Show("Сумма вероятностей переходов из S1 в матрице начальных вероятностей переходов не равна 1!");
                 return false;
@@ -131,7 +138,7 @@ namespace TCPLab3
             int generalCountShoot = 0; 
 
             int countRepeat = (int)nudCountRepeat.Value;
-            for(int i = 0; i< countRepeat; i++)
+            for(int i = 0; i < countRepeat; i++)
             {
                 var result = DoExperiment(states);
                 generalCountShoot += result.Item1;
@@ -139,7 +146,7 @@ namespace TCPLab3
                 generalCountsShoot.Add(result.Item1);
             }
 
-            var resultForm = new ResultForm(generalCountsShoot,resultStr,(double)generalCountShoot/(double)countRepeat);
+            var resultForm = new ResultForm(generalCountsShoot,resultStr, generalCountShoot / (double)countRepeat);
             resultForm.Show();
         }
 
@@ -147,29 +154,32 @@ namespace TCPLab3
         {
             //вычисляем начальное состояние
             var pStartState = rnd.NextDouble();
+            //var pStartState = Double.Parse(numbers[counter], CultureInfo.InvariantCulture);
+            counter++;
             int currentState = 0;
             int countShoot = 0;
 
-            if (pStartState < (double)S0.Value)
+            if (pStartState <= (double)S0.Value)
                 currentState = 0;
-            else if (pStartState > (double)S0.Value && pStartState < (double)S0.Value + (double)S1.Value)
+            else if (pStartState > (double)S0.Value && pStartState <= (double)S0.Value + (double)S1.Value)
                 currentState = 1;
             else currentState = 2;
 
             string result = "S"+ currentState;
 
-            int i = 0; 
             //пока цель не будет поражена, продолжаем стрелять
             while (currentState != 2)
             {
                 countShoot++;
-                var pShoot = rnd.NextDouble(); //генерируем новую вероятность
+                //генерируем новую вероятность
+                var pShoot = rnd.NextDouble();
+                //var pShoot =  Convert.ToDouble(numbers[counter], CultureInfo.InvariantCulture);//
+                //counter++;               
                 var curState = states.FirstOrDefault(x => x.State == currentState);
                 //получаем новое состояние, в которое перейдём из текущего
                 currentState = curState.Transitions.FirstOrDefault(x => pShoot >= x.startP && pShoot <= x.endP).state;
                 //добавляем новое состояние в результирующую строку
                 result += "(" + pShoot.ToString("0.##") +") -> S" + currentState;
-                i++; 
             }
             return (countShoot, result);
         }
